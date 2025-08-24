@@ -46,6 +46,7 @@
   ],
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",
+    "@types/resize-observer-browser": "^0.1.11",
     "husky": "^9.1.7",
     "size-limit": "^11.2.0",
     "tsdx": "^0.14.1",
