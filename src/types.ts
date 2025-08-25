@@ -1,4 +1,4 @@
-import { VNode } from "preact";
+import { VNode } from 'preact';
 
 export type Position = {
   top?: string;
@@ -25,7 +25,12 @@ export type GuideStep = {
 };
 
 export type GuidePoint = {
-  card: VNode;
+  card: (control: {
+    prev?: () => void;
+    next?: () => void;
+    pointNumber: number;
+    poinstCount: number;
+  }) => VNode;
   id: string;
   disable?: boolean;
   scrollId?: string;
@@ -33,5 +38,5 @@ export type GuidePoint = {
   subPoints?: string[];
   requiredElements?: string[];
   backgroundColor?: string;
-  padding?: number | Required<Position>
+  padding?: number | Required<Position>;
 };

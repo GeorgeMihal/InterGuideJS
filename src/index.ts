@@ -10,12 +10,19 @@ import {
 
 class InterGuide {
   static instance: any;
-  rootContext: undefined | string = undefined;
-  decorationsIds: string[] = [];
-  active: { index: number; items: string[] } = { index: 0, items: [] };
-  observers: MutationObserver[] = [];
-  items: GuideStep[] = [];
-  rects: DOMRect[] = [];
+  private rootContext: undefined | string = undefined;
+  private decorationsIds: string[] = [];
+  private active: { index: number; items: string[] } = { index: 0, items: [] };
+  private observers: MutationObserver[] = [];
+  private items: GuideStep[] = [];
+  private finalItem?: {
+    value: (cancel: () => void) => VNode;
+    position: Position;
+  } = undefined;
+  private loadingItem?: {
+    value: VNode;
+    position: Position;
+  } = undefined;
 
   constructor() {
     if (InterGuide.instance) {
@@ -33,13 +40,20 @@ class InterGuide {
     this.nextStepHandler = this.nextStepHandler.bind(this);
     this.prevStepHandler = this.prevStepHandler.bind(this);
     this.getPointNumber = this.getPointNumber.bind(this);
+    this.getPointsCount = this.getPointsCount.bind(this);
     this.activatePoint = this.activatePoint.bind(this);
     this.addCard = this.addCard.bind(this);
+    this.replaceCard = this.replaceCard.bind(this);
+    this.addShadowArea = this.addShadowArea.bind(this);
     this.addHelper = this.addHelper.bind(this);
     this.initStep = this.initStep.bind(this);
+    this.createFinalWindow = this.createFinalWindow.bind(this);
+    this.activateFinalWindow = this.activateFinalWindow.bind(this);
+    this.createLoadingWindow = this.createLoadingWindow.bind(this);
+    this.activateLoadingWindow = this.activateLoadingWindow.bind(this);
   }
 
-  createMainDisplay() {
+  private createMainDisplay() {
     let mainDisplay = document.createElement('div');
     mainDisplay.id = 'InterGuide-MainDisplay';
     mainDisplay.style.width = '100vw';
@@ -51,7 +65,65 @@ class InterGuide {
     return mainDisplay;
   }
 
-  appendItemToContext(item: HTMLDivElement, context?: string) {
+  createLoadingWindow(value: VNode, position: Position) {
+    this.loadingItem = { value, position };
+  }
+
+  createFinalWindow(value: (cancel: () => void) => VNode, position: Position) {
+    this.finalItem = { value, position };
+  }
+
+  private activateFinalWindow() {
+    const { value, position } = this.finalItem ?? {};
+    if (position && value) {
+      let wrapper = document.createElement('div');
+      wrapper.id = 'InterGuide-FinalElement';
+      wrapper.style.position = 'absolute';
+      wrapper.style.zIndex = '99998';
+      wrapper.style.boxShadow = 'rgba(121, 121, 121, 0.25) 0px 0px 0px 5000px';
+      if (typeof position.bottom !== 'undefined') {
+        wrapper.style.bottom = position.bottom;
+      }
+      if (typeof position.top !== 'undefined') {
+        wrapper.style.top = position.top;
+      }
+      if (typeof position.right !== 'undefined') {
+        wrapper.style.right = position.right;
+      }
+      if (typeof position.left !== 'undefined') {
+        wrapper.style.left = position.left;
+      }
+      render(value(this.deactivateGuide), wrapper);
+      this.appendItemToContext(wrapper, this.rootContext);
+    }
+  }
+
+  private activateLoadingWindow() {
+    const { value, position } = this.loadingItem ?? {};
+    if (position && value) {
+      let wrapper = document.createElement('div');
+      wrapper.id = 'InterGuide-LoadingElement';
+      wrapper.style.position = 'absolute';
+      wrapper.style.zIndex = '99998';
+      wrapper.style.boxShadow = 'rgba(121, 121, 121, 0.25) 0px 0px 0px 5000px';
+      if (typeof position.bottom !== 'undefined') {
+        wrapper.style.bottom = position.bottom;
+      }
+      if (typeof position.top !== 'undefined') {
+        wrapper.style.top = position.top;
+      }
+      if (typeof position.right !== 'undefined') {
+        wrapper.style.right = position.right;
+      }
+      if (typeof position.left !== 'undefined') {
+        wrapper.style.left = position.left;
+      }
+      render(value, wrapper);
+      this.appendItemToContext(wrapper, this.rootContext);
+    }
+  }
+
+  private appendItemToContext(item: HTMLDivElement, context?: string) {
     if (typeof context === 'undefined') {
       document.body.append(item);
     } else {
@@ -66,7 +138,6 @@ class InterGuide {
     this.active = { index: 0, items: [] };
     this.observers.forEach(obs => obs.disconnect());
     this.observers = [];
-    this.rects = [];
     this.initStep();
   }
 
@@ -75,6 +146,7 @@ class InterGuide {
       clear(this.items, this.active.index);
     }
     document.getElementById('InterGuide-MainDisplay')?.remove();
+    document.getElementById('InterGuide-FinalElement')?.remove();
     this.decorationsIds.forEach(id => document.getElementById(id)?.remove());
     this.decorationsIds = [];
     this.items = [];
@@ -82,15 +154,21 @@ class InterGuide {
     this.active = { index: 0, items: [] };
   }
 
-  nextStepHandler() {
+  private nextStepHandler() {
     this.observers.forEach(obs => obs.disconnect());
     this.observers = [];
     clear(this.items, this.active.index);
     this.active = { index: this.active.index + 1, items: [] };
+    if (this.active.index !== this.items.length) {
+      this.activateLoadingWindow();
+    }
     this.initStep();
+    if (this.active.index === this.items.length) {
+      this.activateFinalWindow();
+    }
   }
 
-  prevStepHandler() {
+  private prevStepHandler() {
     this.observers.forEach(obs => obs.disconnect());
     this.observers = [];
     clear(this.items, this.active.index);
@@ -98,7 +176,7 @@ class InterGuide {
     this.initStep();
   }
 
-  getPointNumber(pointIndex: number) {
+  private getPointNumber(pointIndex: number) {
     return this.items
       .map((value, i) =>
         this.active.index > i
@@ -110,6 +188,10 @@ class InterGuide {
       .reduce((a, b) => a + b);
   }
 
+  private getPointsCount() {
+    return this.items.map(value => value.points.length).reduce((a, b) => a + b);
+  }
+
   setRootContext(value: string) {
     this.rootContext = value;
   }
@@ -119,7 +201,7 @@ class InterGuide {
     let wrapper = document.createElement('div');
     wrapper.id = id;
     wrapper.style.position = 'absolute';
-    wrapper.style.zIndex = '9998';
+    wrapper.style.zIndex = '99999';
     if (typeof position.bottom !== 'undefined') {
       wrapper.style.bottom = position.bottom;
     }
@@ -136,10 +218,18 @@ class InterGuide {
     this.appendItemToContext(wrapper, this.rootContext);
   }
 
-  activatePoint(point: GuidePoint, state: boolean) {
+  private activatePoint(point: GuidePoint, state: boolean) {
     point.subPoints?.forEach(point => {
       modifyzIndex(point, state ? 99998 : undefined);
     });
+    if (!state) {
+      if (point.disable) {
+        document.getElementById(`InterGuide-Disable-${point.id}`)?.remove();
+      }
+      document.getElementById(`InterGuide-Helper-${point.id}`)?.remove();
+      document.getElementById(`InterGuide-Area-${point.id}`)?.remove();
+      document.getElementById(`InterGuide-Card-${point.id}`)?.remove();
+    }
     if (this.items[this.active.index]?.contexts) {
       this.items[this.active.index]?.contexts?.forEach((item, i) => {
         modifyzIndex(item.selector, state ? 9000 + i : undefined);
@@ -152,7 +242,7 @@ class InterGuide {
     modifyzIndex(point.id, state ? 99999 : undefined);
   }
 
-  initStep() {
+  private initStep() {
     if (this.items[this.active.index]?.nextStepElements) {
       const nextStepObserver = new MutationObserver(() => {
         const isNextElementsReady =
@@ -178,26 +268,32 @@ class InterGuide {
           }) ?? true;
         if (!this.active.items.includes(point.id)) {
           if (isDomReady && isRequiredElementsReady) {
-            this.activatePoint(point, true);
-            this.initPoint(point);
-            this.addCard(point);
-            this.addHelper(point, this.items[this.active.index], i);
             this.active = {
               ...this.active,
               items: [...this.active.items, point.id],
             };
+            if (this.active.items.length === 1) {
+              document.getElementById('InterGuide-LoadingElement')?.remove();
+            }
+            this.activatePoint(point, true);
+            this.initPoint(point, this.items[this.active.index], i);
+            this.addCard(point, i);
+            this.addHelper(point, this.items[this.active.index]);
             this.initStep();
           }
         } else {
           if (!(isDomReady && isRequiredElementsReady)) {
-            this.activatePoint(point, false);
             this.active = {
               ...this.active,
               items: this.active.items.filter(value => value !== point.id),
             };
+            this.activatePoint(point, false);
             this.initStep();
           }
         }
+        this.items[this.active.index]?.points.forEach((point, i) => {
+          this.addShadowArea(point, i);
+        });
       });
       if (
         !this.active.items.includes(point.id) &&
@@ -212,74 +308,91 @@ class InterGuide {
           observer.observe(document.body, { childList: true, subtree: true });
           this.observers = [...this.observers, observer];
         } else {
-          this.activatePoint(point, true);
-          this.initPoint(point);
-          this.addCard(point);
-          this.addHelper(point, this.items[this.active.index], i);
           this.active = {
             ...this.active,
             items: [...this.active.items, point.id],
           };
+          if (this.active.items.length === 1) {
+            document.getElementById('InterGuide-LoadingElement')?.remove();
+          }
+          this.activatePoint(point, true);
+          this.initPoint(point, this.items[this.active.index], i);
+          this.addCard(point, i);
+          this.addHelper(point, this.items[this.active.index]);
           this.initStep();
         }
       }
     });
+    this.items[this.active.index]?.points.forEach((point, i) => {
+      this.addShadowArea(point, i);
+    });
   }
 
-  initPoint(point: GuidePoint /* , i: number */) {
+  private addShadowArea(point: GuidePoint, i: number) {
+    const area: any = document.getElementById(`InterGuide-Area-${point.id}`);
+    const activePoints = this.items[this.active.index]?.points.filter(point =>
+      this.active.items.includes(point.id)
+    );
+    if (
+      (this.items[this.active.index]?.points.length - 1 === i &&
+        activePoints.length === this.items[this.active.index]?.points.length) ||
+      (i === 0 &&
+        activePoints.length !== this.items[this.active.index]?.points.length)
+    ) {
+      area.style.boxShadow = 'rgba(121, 121, 121, 0.25) 0px 0px 0px 5000px';
+    } else {
+      area.style.boxShadow = null;
+    }
+  }
+
+  private initPoint(point: GuidePoint, step: GuideStep, i: number) {
     const mutationAction = () => {
-      const rect = document.querySelector(point.id)?.getBoundingClientRect();
-      if (rect) {
-        this.rects = [...this.rects, rect];
+      this.replaceHelper(`InterGuide-Helper-${point.id}`, step, point);
+      this.replaceHelper(`InterGuide-Area-${point.id}`, step, point);
+      if (point.disable) {
+        this.replaceHelper(`InterGuide-Disable-${point.id}`, step, point);
       }
+      this.replaceCard(point);
     };
-    /* const resizeAction = () => {
-      const localRect = document
-        .querySelector(point.id)
-        ?.getBoundingClientRect();
-      if ((localRect?.top ?? -1) > 0 && localRect) {
-        this.rects = [...this.rects, localRect];
+    const activePoints = this.items[this.active.index]?.points.filter(point =>
+      this.active.items.includes(point.id)
+    );
+    if (
+      this.items[this.active.index]?.points.length - 1 === i &&
+      activePoints.length === this.items[this.active.index]?.points.length &&
+      !this.items[this.active.index]?.nextButton &&
+      !this.items[this.active.index]?.nextStepElements
+    ) {
+      document
+        .querySelectorAll(point.id)
+        .item(0)
+        .addEventListener('mouseup', this.nextStepHandler);
+    }
+    const resizeAction = () => {
+      this.replaceHelper(`InterGuide-Helper-${point.id}`, step, point);
+      this.replaceHelper(`InterGuide-Area-${point.id}`, step, point);
+      if (point.disable) {
+        this.replaceHelper(`InterGuide-Disable-${point.id}`, step, point);
       }
-      this.activatePoint(point, true);
-      this.addCard(point);
-      this.addHelper(point, this.items[this.active.index], i);
-      const activePoints = this.items[this.active.index]?.points.filter(point =>
-        this.active.items.includes(point.id)
-      );
-      if (
-        this.items[this.active.index]?.points.length - 1 === i &&
-        activePoints.length === this.items[this.active.index]?.points.length &&
-        !this.items[this.active.index]?.nextButton &&
-        !this.items[this.active.index]?.nextStepElements
-      ) {
-        document
-          .querySelectorAll(point.id)
-          .item(0)
-          .addEventListener('mouseup', this.nextStepHandler);
-      }
-    }; */
-    //const observer = new ResizeObserver(resizeAction);
-    //const bodyObserver = new ResizeObserver(resizeAction);
+      this.replaceCard(point);
+    };
+    const observer = new ResizeObserver(resizeAction);
+    const bodyObserver = new ResizeObserver(resizeAction);
     const mutationObserver = new MutationObserver(mutationAction);
     mutationObserver.observe(document.body, {
       childList: true,
       subtree: true,
       attributes: true,
     });
-    //observer.observe(document.querySelectorAll(point.id).item(0));
-    //bodyObserver.observe(document.body);
+    observer.observe(document.querySelectorAll(point.id).item(0));
+    bodyObserver.observe(document.body);
   }
 
-  addCard(point: GuidePoint) {
-    let wrapper = document.createElement('div');
-    wrapper.style.position = 'absolute';
-    wrapper.style.zIndex = '99999';
-    wrapper.id = `InterGuide-Card-${point.id}`;
-    render(point.card, wrapper);
-    this.appendItemToContext(wrapper, this.rootContext);
-
+  private replaceCard(point: GuidePoint) {
+    const wrapper: any = document.getElementById(`InterGuide-Card-${point.id}`);
     const rect = document.querySelector(point.id)?.getBoundingClientRect();
     const root = document.getElementById(this.rootContext ?? '');
+
     let pos = { top: 0, left: 0 };
     if (root && rect && wrapper) {
       if (point.direction === 'right') {
@@ -351,12 +464,13 @@ class InterGuide {
             Number(getPaddingByPlacement('left', point.padding)),
         };
       }
+      wrapper.style.top = `${pos.top.toString()}px`;
+      wrapper.style.left = `${pos.left.toString()}px`;
     }
-    wrapper.style.top = `${pos.top.toString()}px`;
-    wrapper.style.left = `${pos.left.toString()}px`;
   }
 
-  addHelper(point: GuidePoint, step: GuideStep, i: number) {
+  private replaceHelper(id: string, step: GuideStep, point: GuidePoint) {
+    const helper: any = document.getElementById(id);
     const rootContext = this.rootContext ?? '';
     const contextId =
       step.contexts && step.contexts?.length > 0
@@ -397,58 +511,74 @@ class InterGuide {
           : undefined,
       };
 
-      console.log('posHelper', pos);
-
-      let helper = document.createElement('div');
-      helper.style.position = 'absolute';
-      helper.style.zIndex = '9999';
-      helper.style.opacity = '1';
-      helper.id = `InterGuide-Helper-${point.id}`;
-      if (point.backgroundColor) {
-        helper.style.backgroundColor = point.backgroundColor;
+      if (helper) {
+        if (pos.top) helper.style.top = `${pos.top.toString()}px`;
+        if (pos.left) helper.style.left = `${pos.left.toString()}px`;
+        if (pos.width) helper.style.width = `${pos.width.toString()}px`;
+        if (pos.height) helper.style.height = `${pos.height.toString()}px`;
       }
-      if (pos.top) helper.style.top = `${pos.top.toString()}px`;
-      if (pos.left) helper.style.left = `${pos.left.toString()}px`;
-      if (pos.width) helper.style.width = `${pos.width.toString()}px`;
-      if (pos.height) helper.style.height = `${pos.height.toString()}px`;
-      console.log('posHelperStyle', helper.style);
-      this.appendItemToContext(helper, contextId);
+    }
+  }
 
-      let area = document.createElement('div');
-      area.style.position = 'absolute';
-      area.style.zIndex = '9997';
-      area.style.opacity = '1';
-      area.id = `InterGuide-Area-${point.id}`;
-      const activePoints = this.items[this.active.index]?.points.filter(point =>
-        this.active.items.includes(point.id)
-      );
-      if (
-        (this.items[this.active.index]?.points.length - 1 === i &&
-          activePoints.length ===
-            this.items[this.active.index]?.points.length) ||
-        (i === 0 &&
-          activePoints.length !== this.items[this.active.index]?.points.length)
-      ) {
-        area.style.boxShadow = 'rgba(121, 121, 121, 0.25) 0px 0px 0px 5000px';
-      }
-      if (pos.top) area.style.top = `${pos.top.toString()}px`;
-      if (pos.left) area.style.left = `${pos.left.toString()}px`;
-      if (pos.width) area.style.width = `${pos.width.toString()}px`;
-      if (pos.height) area.style.height = `${pos.height.toString()}px`;
-      this.appendItemToContext(area, contextId);
+  private addCard(point: GuidePoint, i: number) {
+    let wrapper = document.createElement('div');
+    wrapper.style.position = 'absolute';
+    wrapper.style.zIndex = '99999';
+    wrapper.id = `InterGuide-Card-${point.id}`;
 
-      if (point.disable) {
-        let disable = document.createElement('div');
-        disable.style.position = 'absolute';
-        disable.style.zIndex = '99999';
-        disable.style.opacity = '1';
-        disable.id = `InterGuide-Disable-${point.id}`;
-        if (pos.top) disable.style.top = `${pos.top.toString()}px`;
-        if (pos.left) disable.style.left = `${pos.left.toString()}px`;
-        if (pos.width) disable.style.width = `${pos.width.toString()}px`;
-        if (pos.height) disable.style.height = `${pos.height.toString()}px`;
-        this.appendItemToContext(disable, contextId);
-      }
+    const isNextButton = this.items[this.active.index]?.nextButton;
+    const isPrevButton =
+      this.active.index !== 0
+        ? this.items[this.active.index - 1]?.nextButton
+        : false;
+    render(
+      point.card({
+        pointNumber: this.getPointNumber(i),
+        poinstCount: this.getPointsCount(),
+        prev: isPrevButton ? this.prevStepHandler : undefined,
+        next: isNextButton ? this.nextStepHandler : undefined,
+      }),
+      wrapper
+    );
+    this.appendItemToContext(wrapper, this.rootContext);
+    this.replaceCard(point);
+  }
+
+  private addHelper(point: GuidePoint, step: GuideStep) {
+    const rootContext = this.rootContext ?? '';
+    const contextId =
+      step.contexts && step.contexts?.length > 0
+        ? step.contexts[step.contexts?.length - 1].id ?? rootContext
+        : rootContext;
+
+    let helper = document.createElement('div');
+    helper.style.position = 'absolute';
+    helper.style.zIndex = '9999';
+    helper.style.opacity = '1';
+    helper.id = `InterGuide-Helper-${point.id}`;
+    if (point.backgroundColor) {
+      helper.style.backgroundColor = point.backgroundColor;
+    }
+
+    this.replaceHelper(`InterGuide-Helper-${point.id}`, step, point);
+    this.appendItemToContext(helper, contextId);
+
+    let area = document.createElement('div');
+    area.style.position = 'absolute';
+    area.style.zIndex = '9997';
+    area.style.opacity = '1';
+    area.id = `InterGuide-Area-${point.id}`;
+    this.replaceHelper(`InterGuide-Area-${point.id}`, step, point);
+    this.appendItemToContext(area, contextId);
+
+    if (point.disable) {
+      let disable = document.createElement('div');
+      disable.style.position = 'absolute';
+      disable.style.zIndex = '99999';
+      disable.style.opacity = '1';
+      disable.id = `InterGuide-Disable-${point.id}`;
+      this.replaceHelper(`InterGuide-Disable-${point.id}`, step, point);
+      this.appendItemToContext(disable, contextId);
     }
   }
 }
