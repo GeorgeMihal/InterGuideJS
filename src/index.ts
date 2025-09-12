@@ -58,7 +58,7 @@ class InterGuide {
     mainDisplay.id = 'InterGuide-MainDisplay';
     mainDisplay.style.width = '100vw';
     mainDisplay.style.height = '100vh';
-    mainDisplay.style.zIndex = '9000';
+    mainDisplay.style.zIndex = '90000';
     mainDisplay.style.position = 'absolute';
     mainDisplay.style.top = '0px';
     mainDisplay.style.left = '0px';
@@ -79,7 +79,7 @@ class InterGuide {
       let wrapper = document.createElement('div');
       wrapper.id = 'InterGuide-FinalElement';
       wrapper.style.position = 'absolute';
-      wrapper.style.zIndex = '99998';
+      wrapper.style.zIndex = '96000';
       wrapper.style.boxShadow = 'rgba(121, 121, 121, 0.25) 0px 0px 0px 5000px';
       if (typeof position.bottom !== 'undefined') {
         wrapper.style.bottom = position.bottom;
@@ -104,7 +104,7 @@ class InterGuide {
       let wrapper = document.createElement('div');
       wrapper.id = 'InterGuide-LoadingElement';
       wrapper.style.position = 'absolute';
-      wrapper.style.zIndex = '99998';
+      wrapper.style.zIndex = '96000';
       wrapper.style.boxShadow = 'rgba(121, 121, 121, 0.25) 0px 0px 0px 5000px';
       if (typeof position.bottom !== 'undefined') {
         wrapper.style.bottom = position.bottom;
@@ -201,7 +201,7 @@ class InterGuide {
     let wrapper = document.createElement('div');
     wrapper.id = id;
     wrapper.style.position = 'absolute';
-    wrapper.style.zIndex = '99999';
+    wrapper.style.zIndex = '96000';
     if (typeof position.bottom !== 'undefined') {
       wrapper.style.bottom = position.bottom;
     }
@@ -220,7 +220,7 @@ class InterGuide {
 
   private activatePoint(point: GuidePoint, state: boolean) {
     point.subPoints?.forEach(point => {
-      modifyzIndex(point, state ? 99998 : undefined);
+      modifyzIndex(point, state ? 93000 : undefined);
     });
     if (!state) {
       if (point.disable) {
@@ -232,14 +232,14 @@ class InterGuide {
     }
     if (this.items[this.active.index]?.contexts) {
       this.items[this.active.index]?.contexts?.forEach((item, i) => {
-        modifyzIndex(item.selector, state ? 9000 + i : undefined);
+        modifyzIndex(item.selector, state ? 90000 + i : undefined);
         item.hasShadow && modifyShadowContext(item.selector, state);
       });
     }
     if (point.scrollId && state) {
       document.getElementById(point.scrollId)?.scrollIntoView();
     }
-    modifyzIndex(point.id, state ? 99999 : undefined);
+    modifyzIndex(point.id, state ? 94000 : undefined);
   }
 
   private initStep() {
@@ -523,7 +523,7 @@ class InterGuide {
   private addCard(point: GuidePoint, i: number) {
     let wrapper = document.createElement('div');
     wrapper.style.position = 'absolute';
-    wrapper.style.zIndex = '99999';
+    wrapper.style.zIndex = '96000';
     wrapper.id = `InterGuide-Card-${point.id}`;
 
     const isNextButton = this.items[this.active.index]?.nextButton;
@@ -534,7 +534,7 @@ class InterGuide {
     render(
       point.card({
         pointNumber: this.getPointNumber(i),
-        poinstCount: this.getPointsCount(),
+        pointsCount: this.getPointsCount(),
         prev: isPrevButton ? this.prevStepHandler : undefined,
         next: isNextButton ? this.nextStepHandler : undefined,
       }),
@@ -551,30 +551,46 @@ class InterGuide {
         ? step.contexts[step.contexts?.length - 1].id ?? rootContext
         : rootContext;
 
+    const contextItems = step.contexts?.map(item => item.id ?? rootContext) ?? [
+      rootContext,
+    ];
+
     let helper = document.createElement('div');
     helper.style.position = 'absolute';
-    helper.style.zIndex = '9999';
+    helper.style.zIndex = '92000';
     helper.style.opacity = '1';
     helper.id = `InterGuide-Helper-${point.id}`;
     if (point.backgroundColor) {
       helper.style.backgroundColor = point.backgroundColor;
     }
-
     this.replaceHelper(`InterGuide-Helper-${point.id}`, step, point);
     this.appendItemToContext(helper, contextId);
 
     let area = document.createElement('div');
     area.style.position = 'absolute';
-    area.style.zIndex = '9997';
+    area.style.zIndex = '91000';
     area.style.opacity = '1';
     area.id = `InterGuide-Area-${point.id}`;
     this.replaceHelper(`InterGuide-Area-${point.id}`, step, point);
     this.appendItemToContext(area, contextId);
 
+    contextItems.forEach((item) => {
+      let context = document.createElement('div');
+      context.style.position = 'absolute';
+      context.style.zIndex = '90000';
+      context.style.top = '0px';
+      context.style.left = '0px';
+      context.style.width = '100%';
+      context.style.height = '100%';
+      context.style.opacity = '1';
+      context.id = `InterGuide-Context-${point.id}`;
+      this.appendItemToContext(context, item);
+    });
+
     if (point.disable) {
       let disable = document.createElement('div');
       disable.style.position = 'absolute';
-      disable.style.zIndex = '99999';
+      disable.style.zIndex = '95000';
       disable.style.opacity = '1';
       disable.id = `InterGuide-Disable-${point.id}`;
       this.replaceHelper(`InterGuide-Disable-${point.id}`, step, point);

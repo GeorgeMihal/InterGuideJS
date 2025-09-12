@@ -2,6 +2,7 @@ import { GuideStep, Position } from './types';
 
 export const modifyzIndex = (id: string, index?: number) => {
   const item: any = document.querySelectorAll(id)?.item(0);
+  console.log("context", id, item)
   if (item) {
     item.style.zIndex = index ?? null;
   }

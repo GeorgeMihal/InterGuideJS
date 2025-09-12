@@ -29,7 +29,7 @@ export type GuidePoint = {
     prev?: () => void;
     next?: () => void;
     pointNumber: number;
-    poinstCount: number;
+    pointsCount: number;
   }) => VNode;
   id: string;
   disable?: boolean;
