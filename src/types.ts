@@ -30,7 +30,12 @@ export type GuidePoint = {
   card: (control: Control) => VNode;
   selector: string;
   disable?: boolean;
-  scrollId?: string;
+  scroll?: {
+    id: string;
+    behavior?: 'auto' | 'smooth';
+    block?: 'center' | 'end' | 'nearest' | 'start';
+    inline?: 'center' | 'end' | 'nearest' | 'start';
+  };
   direction: Direction;
   subPoints?: string[];
   requiredElements?: string[];

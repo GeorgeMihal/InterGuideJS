@@ -65,28 +65,26 @@ class InterGuide {
   }
 
   activateGuide(items: GuideStep[]) {
-    console.log('this.active', this.active);
     this.appendItemToContext(this.createMainDisplay(), this.rootContext);
     this.items = items;
-    this.active = { index: 0, items: [] };
-    console.log('this.active2', this.active);
     this.observers.forEach(obs => obs.disconnect());
     this.observers = [];
+    this.active = { index: 0, items: [] };
     this.initStep();
   }
 
   deactivateGuide() {
-    if (this.active.index !== this.items.length) {
-      this.clear(true);
-    }
     document.getElementById('InterGuide-MainDisplay')?.remove();
     document.getElementById('InterGuide-FinalElement')?.remove();
     document.getElementById('InterGuide-LoadingElement')?.remove();
     this.decorationsIds.forEach(id => document.getElementById(id)?.remove());
     this.decorationsIds = [];
-    this.items = [];
     this.observers.forEach(obs => obs.disconnect());
     this.observers = [];
+    if (this.active.index !== this.items.length) {
+      this.clear(true);
+    }
+    this.items = [];
     this.active = { index: 0, items: [] };
   }
 
@@ -183,7 +181,6 @@ class InterGuide {
       document.body.append(item);
     } else {
       let root = document.getElementById(context);
-      console.log('modal', root);
       root?.append(item);
     }
   }
@@ -256,8 +253,11 @@ class InterGuide {
         item.hasShadow && modifyShadowContext(item.selector, state);
       });
     }
-    if (point.scrollId && state) {
-      document.getElementById(point.scrollId)?.scrollIntoView();
+    if (point.scroll && state) {
+      const { id, behavior, block, inline } = point.scroll;
+      document
+        .getElementById(id)
+        ?.scrollIntoView({ behavior: behavior, block: block, inline: inline });
     }
     modifyzIndex(point.selector, state ? 94000 : undefined);
   }
@@ -288,7 +288,6 @@ class InterGuide {
           }) ?? true;
         if (!this.active.items.includes(point.selector)) {
           if (isDomReady && isRequiredElementsReady) {
-            console.log('1this.active', [...this.active.items, point.selector]);
             this.active = {
               ...this.active,
               items: [...this.active.items, point.selector],
@@ -309,10 +308,6 @@ class InterGuide {
           }
         } else {
           if (!(isDomReady && isRequiredElementsReady)) {
-            console.log(
-              '2this.active',
-              this.active.items.filter(value => value !== point.selector)
-            );
             this.active = {
               ...this.active,
               items: this.active.items.filter(
@@ -340,7 +335,6 @@ class InterGuide {
           observer.observe(document.body, { childList: true, subtree: true });
           this.observers = [...this.observers, observer];
         } else {
-          console.log('3this.active', [...this.active.items, point.selector]);
           this.active = {
             ...this.active,
             items: [...this.active.items, point.selector],
@@ -409,7 +403,7 @@ class InterGuide {
       document
         .querySelectorAll(point.selector)
         .item(0)
-        .addEventListener('mouseup', this.nextStepHandler);
+        .addEventListener('click', this.nextStepHandler, { once: true });
     }
     const resizeAction = () => {
       this.replaceHelper(`InterGuide-Helper-${point.selector}`, step, point);
@@ -574,7 +568,7 @@ class InterGuide {
   private addCard(point: GuidePoint, i: number) {
     let wrapper = document.createElement('div');
     wrapper.style.position = 'absolute';
-    wrapper.style.zIndex = '96000';
+    wrapper.style.zIndex = '97000';
     wrapper.style.transition = 'top 1s, left 1s, width 1s, height 1s';
     wrapper.className = 'interguide-js-card';
     wrapper.id = `InterGuide-Card-${point.selector}`;
@@ -683,7 +677,6 @@ class InterGuide {
         context.style.height = '100%';
         context.style.opacity = '1';
         context.id = `InterGuide-Context-${item}`;
-        console.log('item', item);
         this.appendItemToContext(context, item);
       }
     });
@@ -698,6 +691,14 @@ class InterGuide {
     contextItems.forEach(item => {
       document.getElementById(`InterGuide-Context-${item}`)?.remove();
     });
+    if (isDeactivate && index !== 0) {
+      const lastPoint = this.items[index - 1].points[
+        this.items[index - 1].points.length - 1
+      ];
+      document
+        .getElementById(`InterGuide-Card-${lastPoint.selector}`)
+        ?.remove();
+    }
     this.items[index].points.forEach((point, i) => {
       if (point.disable) {
         document
