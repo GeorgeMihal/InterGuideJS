@@ -20,18 +20,15 @@ export type Direction =
 export type GuideStep = {
   points: GuidePoint[];
   nextButton?: boolean;
-  contexts?: { selector: string; id?: string; hasShadow?: boolean }[];
+  contexts?: Context[];
   nextStepElements?: string[];
 };
 
+export type Context = { selector: string; id?: string; hasShadow?: boolean };
+
 export type GuidePoint = {
-  card: (control: {
-    prev?: () => void;
-    next?: () => void;
-    pointNumber: number;
-    pointsCount: number;
-  }) => VNode;
-  id: string;
+  card: (control: Control) => VNode;
+  selector: string;
   disable?: boolean;
   scrollId?: string;
   direction: Direction;
@@ -39,4 +36,11 @@ export type GuidePoint = {
   requiredElements?: string[];
   backgroundColor?: string;
   padding?: number | Required<Position>;
+};
+
+export type Control = {
+  prev?: () => void;
+  next?: () => void;
+  pointNumber: number;
+  pointsCount: number;
 };
