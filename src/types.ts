@@ -22,30 +22,57 @@ export type GuideStep = {
   nextButton?: boolean;
   contexts?: Context[];
   nextStepElements?: string[];
+  shadowColor?: string;
 };
 
-export type Context = { selector: string; id?: string; hasShadow?: boolean };
+export type Context = { selector: string };
 
 export type GuidePoint = {
-  card: (control: Control) => VNode;
+  card: (control: CardControl) => VNode;
   selector: string;
   disable?: boolean;
-  scroll?: {
-    id: string;
-    behavior?: 'auto' | 'smooth';
-    block?: 'center' | 'end' | 'nearest' | 'start';
-    inline?: 'center' | 'end' | 'nearest' | 'start';
-  };
+  scroll?: ScrollSettings;
+  style?: StyleSettings;
   direction: Direction;
   subPoints?: string[];
   requiredElements?: string[];
-  backgroundColor?: string;
-  padding?: number | Required<Position>;
 };
 
-export type Control = {
+export type ScrollSettings = {
+  selector: string;
+  behavior?: 'auto' | 'smooth';
+  block?: ScrollPosition;
+  inline?: ScrollPosition;
+};
+
+export type ScrollPosition = 'center' | 'end' | 'nearest' | 'start';
+
+export type StyleSettings = {
+  border?: string;
+  borderRadius?: string;
+  padding?: number | Required<Position>;
+  backgroundColor?: string;
+};
+
+export type CardControl = {
   prev?: () => void;
   next?: () => void;
+  deactivate: () => void;
   pointNumber: number;
   pointsCount: number;
+  pointsCountInStep: number;
+  pointNumberInStep: number;
+  stepsCount: number;
+  stepNumber: number;
+};
+
+export type DecorationControl = { element: (cancel?: () => void) => VNode,  position: Position }
+
+export type Guide = {
+  steps: GuideStep[];
+  rootContext?: string;
+  deactivateElement?: DecorationControl;
+  finalElement?: DecorationControl;
+  loadingElement?: DecorationControl;
+  decorations?: DecorationControl[];
 };

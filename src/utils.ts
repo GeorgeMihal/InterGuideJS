@@ -7,15 +7,6 @@ export const modifyzIndex = (id: string, index?: number) => {
   }
 };
 
-export const modifyShadowContext = (id: string, active?: boolean) => {
-  const item: any = document.querySelectorAll(id)?.item(0);
-  if (item) {
-    item.style.boxShadow = active
-      ? 'rgba(121, 121, 121, 0.25) 0px 0px 0px 5000px'
-      : null;
-  }
-};
-
 export const getPaddingByPlacement = (
   placement: 'left' | 'right' | 'bottom' | 'top',
   padding?: number | Required<Position>
@@ -28,3 +19,7 @@ export const getPaddingByPlacement = (
   }
   return padding[placement];
 };
+
+
+export const shadowSize = '0px 0px 0px 5000px';
+export const shadowColor = 'rgba(121, 121, 121, 0.25)';
