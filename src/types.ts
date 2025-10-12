@@ -29,6 +29,7 @@ export type Context = { selector: string };
 
 export type GuidePoint = {
   card: (control: CardControl) => VNode;
+  cardAnimation?: CardAnimationSettings;
   selector: string;
   disable?: boolean;
   scroll?: ScrollSettings;
@@ -46,6 +47,13 @@ export type ScrollSettings = {
 };
 
 export type ScrollPosition = 'center' | 'end' | 'nearest' | 'start';
+
+export type CardAnimationSettings = {
+  duration?: string;
+  delay?: string;
+  timingFunction?: string;
+};
+
 
 export type StyleSettings = {
   border?: string;

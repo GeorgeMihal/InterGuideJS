@@ -594,6 +594,15 @@ class InterGuide {
 
   private addCard(point: GuidePoint, i: number) {
     let wrapper = document.createElement('div');
+    if (
+      this.items[this.active.index].points.length - 1 === i &&
+      this.items.length - 1 !== this.active.index
+    ) {
+      const { duration, delay, timingFunction } = point.cardAnimation ?? {};
+      wrapper.style.transition = `top ${duration ?? '1s'} ${timingFunction ??
+        'linear'} ${delay ?? '0s'}, left ${duration ?? '1s'} ${timingFunction ??
+        'linear'} ${delay ?? '0s'}`;
+    }
     wrapper.className = 'interguide-js-card';
     wrapper.id = `InterGuide-Card-${point.selector}`;
 
