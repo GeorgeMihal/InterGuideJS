@@ -1,6 +1,12 @@
 import { render, VNode } from 'preact';
 import { html as interpolate } from 'htm/preact';
-import { Guide, GuidePoint, GuideStep, Position } from './types';
+import {
+  Guide,
+  GuidePoint,
+  GuideStep,
+  LayersSettings,
+  Position,
+} from './types';
 import './index.css';
 import {
   getPaddingByPlacement,
@@ -16,6 +22,17 @@ class InterGuide {
   private active: { index: number; items: string[] } = { index: 0, items: [] };
   private observers: MutationObserver[] = [];
   private items: GuideStep[] = [];
+  private layers: Required<LayersSettings> = {
+    cardsLayer: 97000,
+    areaLayer: 91000,
+    helpersLayer: 92000,
+    disableLayer: 95000,
+    contextsLayer: 90000,
+    decorationsLayer: 96000,
+    mainDisplayLayer: 90000,
+    pointsLayer: 94000,
+    subPointsLayer: 93000,
+  };
   private finalItem?: {
     value: (cancel: () => void) => VNode;
     position: Position;
@@ -59,6 +76,12 @@ class InterGuide {
 
   activateGuide(guide: Guide) {
     this.setRootContext(guide.rootContext ?? 'root');
+    console.log(this.layers);
+    this.layers = {
+      ...this.layers,
+      ...guide.layers,
+    } as Required<LayersSettings>;
+    console.log(this.layers);
     this.appendItemToContext(
       this.createMainDisplay(),
       `[id=${this.rootContext}]`
@@ -134,6 +157,7 @@ class InterGuide {
     let wrapper = document.createElement('div');
     wrapper.id = id;
     wrapper.className = 'interguide-js-decoration';
+    wrapper.style.zIndex = this.layers.decorationsLayer.toString();
     if (typeof position.bottom !== 'undefined') {
       wrapper.style.bottom = position.bottom;
     }
@@ -154,6 +178,7 @@ class InterGuide {
     let mainDisplay = document.createElement('div');
     mainDisplay.id = 'InterGuide-MainDisplay';
     mainDisplay.className = 'interguide-js-main-display';
+    mainDisplay.style.zIndex = this.layers.mainDisplayLayer.toString();
     return mainDisplay;
   }
 
@@ -163,6 +188,7 @@ class InterGuide {
       let wrapper = document.createElement('div');
       wrapper.id = 'InterGuide-FinalElement';
       wrapper.className = 'interguide-js-decoration';
+      wrapper.style.zIndex = this.layers.decorationsLayer.toString();
       wrapper.style.boxShadow = `${shadowColor} ${shadowSize}`;
       if (typeof position.bottom !== 'undefined') {
         wrapper.style.bottom = position.bottom;
@@ -187,6 +213,7 @@ class InterGuide {
       let wrapper = document.createElement('div');
       wrapper.id = 'InterGuide-LoadingElement';
       wrapper.className = 'interguide-js-decoration';
+      wrapper.style.zIndex = this.layers.decorationsLayer.toString();
       wrapper.style.boxShadow = `${shadowColor} ${shadowSize}`;
       if (typeof position.bottom !== 'undefined') {
         wrapper.style.bottom = position.bottom;
@@ -258,7 +285,7 @@ class InterGuide {
 
   private activatePoint(point: GuidePoint, i: number, state: boolean) {
     point.subPoints?.forEach(point => {
-      modifyzIndex(point, state ? 93000 : undefined);
+      modifyzIndex(point, state ? this.layers.subPointsLayer : undefined);
     });
     if (!state) {
       if (point.disable) {
@@ -278,7 +305,10 @@ class InterGuide {
     }
     if (this.items[this.active.index]?.contexts) {
       this.items[this.active.index]?.contexts?.forEach((item, i) => {
-        modifyzIndex(item.selector, state ? 90000 + i : undefined);
+        modifyzIndex(
+          item.selector,
+          state ? this.layers.contextsLayer + i : undefined
+        );
       });
     }
     if (point.scroll && state) {
@@ -287,7 +317,7 @@ class InterGuide {
         .querySelector(selector)
         ?.scrollIntoView({ behavior: behavior, block: block, inline: inline });
     }
-    modifyzIndex(point.selector, state ? 94000 : undefined);
+    modifyzIndex(point.selector, state ? this.layers.pointsLayer : undefined);
   }
 
   private initStep() {
@@ -605,6 +635,7 @@ class InterGuide {
     }
     wrapper.className = 'interguide-js-card';
     wrapper.id = `InterGuide-Card-${point.selector}`;
+    wrapper.style.zIndex = this.layers.cardsLayer.toString();
 
     const isNextButton = this.items[this.active.index]?.nextButton;
     const isPrevButton =
@@ -671,6 +702,7 @@ class InterGuide {
       let helper = document.createElement('div');
       helper.className = 'interguide-js-helper';
       helper.id = `InterGuide-Helper-${point.selector}`;
+      helper.style.zIndex = this.layers.helpersLayer.toString();
       if (point.style?.backgroundColor) {
         helper.style.backgroundColor = point.style.backgroundColor;
       }
@@ -679,6 +711,7 @@ class InterGuide {
 
       let area = document.createElement('div');
       area.className = 'interguide-js-area';
+      area.style.zIndex = this.layers.areaLayer.toString();
       area.id = `InterGuide-Area-${point.selector}`;
       if (point.style?.backgroundColor) {
         area.style.backgroundColor = point.style.backgroundColor;
@@ -689,6 +722,7 @@ class InterGuide {
       if (point.disable) {
         let disable = document.createElement('div');
         disable.className = 'interguide-js-disable';
+        disable.style.zIndex = this.layers.disableLayer.toString();
         disable.id = `InterGuide-Disable-${point.selector}`;
         this.replaceHelper(`InterGuide-Disable-${point.selector}`, step, point);
         this.appendItemToContext(disable, contextSelector);
@@ -709,6 +743,7 @@ class InterGuide {
         let context = document.createElement('div');
         context.className = 'interguide-js-context';
         context.id = `InterGuide-Context-${item}`;
+        context.style.zIndex = this.layers.contextsLayer.toString();
         this.appendItemToContext(context, item);
       }
     });

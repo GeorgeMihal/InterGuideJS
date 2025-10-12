@@ -83,4 +83,18 @@ export type Guide = {
   finalElement?: DecorationControl;
   loadingElement?: DecorationControl;
   decorations?: DecorationControl[];
+  layers?: LayersSettings;
+};
+
+
+export type LayersSettings = {
+  cardsLayer?: number;
+  areaLayer?: number;
+  helpersLayer?: number;
+  disableLayer?: number;
+  contextsLayer?: number;
+  decorationsLayer?: number;
+  mainDisplayLayer?: number;
+  pointsLayer?: number;
+  subPointsLayer?: number;
 };
