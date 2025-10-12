@@ -19,6 +19,7 @@ class InterGuide {
   static instance: any;
   private rootContext: undefined | string = undefined;
   private decorationsIds: string[] = [];
+  private decorationObservers: MutationObserver[] = [];
   private active: { index: number; items: string[] } = { index: 0, items: [] };
   private observers: MutationObserver[] = [];
   private items: GuideStep[] = [];
@@ -76,16 +77,11 @@ class InterGuide {
 
   activateGuide(guide: Guide) {
     this.setRootContext(guide.rootContext ?? 'root');
-    console.log(this.layers);
     this.layers = {
       ...this.layers,
       ...guide.layers,
     } as Required<LayersSettings>;
-    console.log(this.layers);
-    this.appendItemToContext(
-      this.createMainDisplay(),
-      `[id=${this.rootContext}]`
-    );
+    this.appendItemToContext(this.createMainDisplay(), this.rootContext);
     if (guide.loadingElement) {
       this.createLoadingWindow(
         guide.loadingElement.element(),
@@ -106,15 +102,35 @@ class InterGuide {
       );
     }
     if (guide.decorations) {
-      guide.decorations.forEach(decoration => {
-        this.addDecoration(
-          decoration.element(),
-          decoration.position,
-          'InterGuide-CancelElement'
-        );
+      guide.decorations.forEach((decoration, i) => {
+        if (!decoration.requiredElements?.length) {
+          this.addDecoration(
+            decoration.element(),
+            decoration.position,
+            `InterGuide-Decoration-${i}`
+          );
+        } else {
+          const observer = new MutationObserver(() => {
+            const isRequiredElementsReady =
+              decoration.requiredElements?.every(value => {
+                return !!document.querySelector(value);
+              }) ?? true;
+            const hasDecoration = !!document.getElementById(
+              `InterGuide-Decoration-${i}`
+            );
+            if (isRequiredElementsReady && !hasDecoration) {
+              this.addDecoration(
+                decoration.element(),
+                decoration.position,
+                `InterGuide-Decoration-${i}`
+              );
+            }
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+          this.decorationObservers = [...this.decorationObservers, observer];
+        }
       });
     }
-
     this.items = guide.steps;
     this.observers.forEach(obs => obs.disconnect());
     this.observers = [];
@@ -130,6 +146,8 @@ class InterGuide {
     this.decorationsIds = [];
     this.observers.forEach(obs => obs.disconnect());
     this.observers = [];
+    this.decorationObservers.forEach(obs => obs.disconnect());
+    this.decorationObservers = [];
     if (this.active.index !== this.items.length) {
       this.clear(true);
     }
@@ -171,7 +189,7 @@ class InterGuide {
       wrapper.style.left = position.left;
     }
     render(value, wrapper);
-    this.appendItemToContext(wrapper, `[id=${this.rootContext}]`);
+    this.appendItemToContext(wrapper, this.rootContext);
   }
 
   private createMainDisplay() {
@@ -203,7 +221,7 @@ class InterGuide {
         wrapper.style.left = position.left;
       }
       render(value(this.deactivateGuide), wrapper);
-      this.appendItemToContext(wrapper, `[id=${this.rootContext}]`);
+      this.appendItemToContext(wrapper, this.rootContext);
     }
   }
 
@@ -228,7 +246,7 @@ class InterGuide {
         wrapper.style.left = position.left;
       }
       render(value, wrapper);
-      this.appendItemToContext(wrapper, `[id=${this.rootContext}]`);
+      this.appendItemToContext(wrapper, this.rootContext);
     }
   }
 
@@ -486,7 +504,7 @@ class InterGuide {
     const rect = document
       .querySelector(point.selector)
       ?.getBoundingClientRect();
-    const root = document.getElementById(this.rootContext ?? '');
+    const root = document.querySelector(this.rootContext ?? '');
 
     let pos = { top: 0, left: 0 };
     if (root && rect && wrapper) {
@@ -570,9 +588,8 @@ class InterGuide {
     if (step) {
       const contextSelector =
         step.contexts && step.contexts?.length > 0
-          ? step.contexts[step.contexts?.length - 1].selector ??
-            `[id=${rootContext}]`
-          : `[id=${rootContext}]`;
+          ? step.contexts[step.contexts?.length - 1].selector ?? rootContext
+          : rootContext;
       const context = document.querySelector(contextSelector);
 
       if (context) {
@@ -638,10 +655,22 @@ class InterGuide {
     wrapper.style.zIndex = this.layers.cardsLayer.toString();
 
     const isNextButton = this.items[this.active.index]?.nextButton;
+    const key = this.items[this.active.index].key;
     const isPrevButton =
       this.active.index !== 0
         ? this.items[this.active.index - 1]?.nextButton
         : false;
+    if (isNextButton && key) {
+      document.addEventListener(
+        'keydown',
+        event => {
+          if (event.code == key) {
+            this.nextStepHandler();
+          }
+        },
+        { once: true }
+      );
+    }
     render(
       point.card({
         pointNumber: this.getPointNumber(i),
@@ -656,7 +685,7 @@ class InterGuide {
       }),
       wrapper
     );
-    this.appendItemToContext(wrapper, `[id=${this.rootContext}]`);
+    this.appendItemToContext(wrapper, this.rootContext);
     this.replaceCard(point);
   }
 
@@ -668,10 +697,22 @@ class InterGuide {
     if (card) {
       card.id = `InterGuide-Card-${point.selector}`;
       const isNextButton = this.items[this.active.index]?.nextButton;
+      const key = this.items[this.active.index].key;
       const isPrevButton =
         this.active.index !== 0
           ? this.items[this.active.index - 1]?.nextButton
           : false;
+      if (isNextButton && key) {
+        document.addEventListener(
+          'keydown',
+          event => {
+            if (event.code == key) {
+              this.nextStepHandler();
+            }
+          },
+          { once: true }
+        );
+      }
       render(
         point.card({
           pointNumber: this.getPointNumber(0),
@@ -695,9 +736,8 @@ class InterGuide {
     if (step) {
       const contextSelector =
         step.contexts && step.contexts?.length > 0
-          ? step.contexts[step.contexts?.length - 1].selector ??
-            `[id=${rootContext}]`
-          : `[id=${rootContext}]`;
+          ? step.contexts[step.contexts?.length - 1].selector ?? rootContext
+          : rootContext;
 
       let helper = document.createElement('div');
       helper.className = 'interguide-js-helper';
@@ -735,7 +775,7 @@ class InterGuide {
 
     const contextItems =
       this.items[this.active.index]?.contexts?.map(
-        item => item.selector ?? `[id=${rootContext}]`
+        item => item.selector ?? rootContext
       ) ?? [];
 
     contextItems?.forEach(item => {
@@ -753,9 +793,8 @@ class InterGuide {
     const rootContext = this.rootContext ?? '';
     const index = this.active.index;
     const contextItems =
-      this.items[index].contexts?.map(
-        item => item.selector ?? `[id=${rootContext}]`
-      ) ?? [];
+      this.items[index].contexts?.map(item => item.selector ?? rootContext) ??
+      [];
 
     contextItems.forEach(item => {
       document.getElementById(`InterGuide-Context-${item}`)?.remove();

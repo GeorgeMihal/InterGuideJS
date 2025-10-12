@@ -20,6 +20,7 @@ export type Direction =
 export type GuideStep = {
   points: GuidePoint[];
   nextButton?: boolean;
+  key?: string;
   contexts?: Context[];
   nextStepElements?: string[];
   shadowColor?: string;
@@ -54,7 +55,6 @@ export type CardAnimationSettings = {
   timingFunction?: string;
 };
 
-
 export type StyleSettings = {
   border?: string;
   borderRadius?: string;
@@ -74,7 +74,11 @@ export type CardControl = {
   stepNumber: number;
 };
 
-export type DecorationControl = { element: (cancel?: () => void) => VNode,  position: Position }
+export type DecorationControl = {
+  element: (cancel?: () => void) => VNode;
+  position: Position;
+  requiredElements?: string[];
+};
 
 export type Guide = {
   steps: GuideStep[];
@@ -85,7 +89,6 @@ export type Guide = {
   decorations?: DecorationControl[];
   layers?: LayersSettings;
 };
-
 
 export type LayersSettings = {
   cardsLayer?: number;
