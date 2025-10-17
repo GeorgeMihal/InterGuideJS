@@ -1,10 +1,13 @@
-import { VNode } from 'preact';
-
 export type Position = {
   top?: string;
   left?: string;
   right?: string;
   bottom?: string;
+};
+
+export type CardPosition = {
+  top?: number;
+  left?: number;
 };
 
 export type Direction =
@@ -29,13 +32,14 @@ export type GuideStep = {
 export type Context = { selector: string };
 
 export type GuidePoint = {
-  card: (control: CardControl) => VNode;
+  cardRender: (wrapper: HTMLElement, control: CardControl) => void;
   cardAnimation?: CardAnimationSettings;
   selector: string;
   disable?: boolean;
   scroll?: ScrollSettings;
   style?: StyleSettings;
   direction: Direction;
+  position?: CardPosition;
   subPoints?: string[];
   requiredElements?: string[];
 };
@@ -75,7 +79,7 @@ export type CardControl = {
 };
 
 export type DecorationControl = {
-  element: (cancel?: () => void) => VNode;
+  render?: (wrapper: HTMLElement, cancel?: () => void) => void;
   position: Position;
   requiredElements?: string[];
 };
