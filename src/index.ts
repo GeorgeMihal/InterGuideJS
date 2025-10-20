@@ -63,6 +63,7 @@ class InterGuide {
     this.getActiveContexts = this.getActiveContexts.bind(this);
     this.getActivePointsCount = this.getActivePointsCount.bind(this);
     this.activatePoint = this.activatePoint.bind(this);
+    this.activateContexts = this.activateContexts.bind(this);
     this.addCard = this.addCard.bind(this);
     this.updateCard = this.updateCard.bind(this);
     this.replaceCard = this.replaceCard.bind(this);
@@ -142,6 +143,7 @@ class InterGuide {
     }
     this.items = [];
     this.active = { index: 0, items: [] };
+    document.dispatchEvent(new CustomEvent('deactivate-guide'));
   }
 
   private createLoadingWindow(value: DecorationControl) {
@@ -269,6 +271,9 @@ class InterGuide {
         document.getElementById(`InterGuide-Card-${point.selector}`)?.remove();
       }
     }
+    modifyzIndex(point.selector, state ? this.layers.pointsLayer : undefined);
+  }
+  private activateContexts(state: boolean) {
     if (this.getActiveContexts()) {
       this.getActiveContexts()?.forEach((item, i) => {
         modifyzIndex(
@@ -277,7 +282,6 @@ class InterGuide {
         );
       });
     }
-    modifyzIndex(point.selector, state ? this.layers.pointsLayer : undefined);
   }
 
   private isNextElementsReady() {
@@ -325,11 +329,12 @@ class InterGuide {
             }
             scrollToElement(point.scroll);
             this.activatePoint(point, i, true);
+            this.activateContexts(true);
             this.initPoint(point, this.getActiveStep(), i);
             if (this.active.index === 0 || i !== 0 || isPrev) {
               this.addCard(point, i);
             } else {
-              this.updateCard(point);
+              this.updateCard(point, i);
             }
             this.addContexts();
             this.addHelper(point, this.getActiveStep());
@@ -370,11 +375,12 @@ class InterGuide {
           }
           scrollToElement(point.scroll);
           this.activatePoint(point, i, true);
+          this.activateContexts(true);
           this.initPoint(point, this.getActiveStep(), i);
           if (this.active.index === 0 || i !== 0 || isPrev) {
             this.addCard(point, i);
           } else {
-            this.updateCard(point);
+            this.updateCard(point, i);
           }
           this.addContexts();
           this.addHelper(point, this.getActiveStep());
@@ -639,13 +645,22 @@ class InterGuide {
     this.replaceCard(point);
   }
 
-  private updateCard(point: GuidePoint) {
+  private updateCard(point: GuidePoint, i: number) {
     const prevItem = this.items[this.active.index - 1];
     let card = document.getElementById(
       `InterGuide-Card-${prevItem.points[prevItem.points.length - 1].selector}`
     );
     if (card) {
       card.id = `InterGuide-Card-${point.selector}`;
+      if (
+        this.getActivePointsCount() - 1 === i &&
+        this.items.length - 1 !== this.active.index
+      ) {
+        const { duration, delay, timingFunction } = point.cardAnimation ?? {};
+        card.style.transition = `top ${duration ?? '1s'} ${timingFunction ??
+          'linear'} ${delay ?? '0s'}, left ${duration ??
+          '1s'} ${timingFunction ?? 'linear'} ${delay ?? '0s'}`;
+      }
       const isNextButton = this.getActiveStep()?.nextButton;
       const key = this.getActiveStep()?.key;
       const isPrevButton =
