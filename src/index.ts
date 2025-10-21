@@ -116,7 +116,11 @@ class InterGuide {
               this.addDecoration(decoration, `InterGuide-Decoration-${i}`);
             }
           });
-          observer.observe(document.body, { childList: true, subtree: true });
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+          });
           this.decorationObservers = [...this.decorationObservers, observer];
         }
       });
@@ -311,6 +315,7 @@ class InterGuide {
       nextStepObserver.observe(document.body, {
         childList: true,
         subtree: true,
+        attributes: true,
       });
       this.observers = [...this.observers, nextStepObserver];
     }
@@ -362,10 +367,13 @@ class InterGuide {
       ) {
         const isDomReady = !!document.querySelector(point.selector);
         const isRequiredElementsReady = this.isRequiredElementsReady(point);
-        if (!isDomReady || !isRequiredElementsReady) {
-          observer.observe(document.body, { childList: true, subtree: true });
-          this.observers = [...this.observers, observer];
-        } else {
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+        });
+        this.observers = [...this.observers, observer];
+        if (isDomReady && isRequiredElementsReady) {
           this.active = {
             ...this.active,
             items: [...this.active.items, point.selector],
