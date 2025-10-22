@@ -72,11 +72,14 @@ class InterGuide {
     this.addContexts = this.addContexts.bind(this);
     this.initStep = this.initStep.bind(this);
     this.clear = this.clear.bind(this);
+    this.addShadowAreaToPoints = this.addShadowAreaToPoints.bind(this);
+    this.preparePoint = this.preparePoint.bind(this);
     this.createFinalWindow = this.createFinalWindow.bind(this);
     this.activateFinalWindow = this.activateFinalWindow.bind(this);
     this.createLoadingWindow = this.createLoadingWindow.bind(this);
     this.activateLoadingWindow = this.activateLoadingWindow.bind(this);
     this.isNextElementsReady = this.isNextElementsReady.bind(this);
+    this.prepareWrapperCard = this.prepareWrapperCard.bind(this);
     this.isRequiredElementsReady = this.isRequiredElementsReady.bind(this);
   }
 
@@ -304,6 +307,38 @@ class InterGuide {
     );
   }
 
+  private preparePoint(point: GuidePoint, i: number, isPrev?: boolean) {
+    const isDomReady = !!document.querySelector(point.selector);
+    const isRequiredElementsReady = this.isRequiredElementsReady(point);
+    if (isDomReady && isRequiredElementsReady) {
+      this.active = {
+        ...this.active,
+        items: [...this.active.items, point.selector],
+      };
+      if (this.active.items.length === 1) {
+        document.getElementById('InterGuide-LoadingElement')?.remove();
+      }
+      scrollToElement(point.scroll);
+      this.activatePoint(point, i, true);
+      this.activateContexts(true);
+      this.initPoint(point, this.getActiveStep(), i);
+      if (this.active.index === 0 || i !== 0 || isPrev) {
+        this.addCard(point, i);
+      } else {
+        this.updateCard(point, i);
+      }
+      this.addContexts();
+      this.addHelper(point, this.getActiveStep());
+      this.initStep();
+    }
+  }
+
+  private addShadowAreaToPoints() {
+    this.getActivePoints()?.forEach((point, i) => {
+      this.addShadowArea(point, i);
+    });
+  }
+
   private initStep(isPrev?: boolean) {
     if (this.getActiveStep()?.nextStepElements) {
       const nextStepObserver = new MutationObserver(() => {
@@ -321,31 +356,11 @@ class InterGuide {
     }
     this.getActivePoints()?.forEach((point, i) => {
       const observer = new MutationObserver(() => {
-        const isDomReady = !!document.querySelector(point.selector);
-        const isRequiredElementsReady = this.isRequiredElementsReady(point);
         if (!this.active.items.includes(point.selector)) {
-          if (isDomReady && isRequiredElementsReady) {
-            this.active = {
-              ...this.active,
-              items: [...this.active.items, point.selector],
-            };
-            if (this.active.items.length === 1) {
-              document.getElementById('InterGuide-LoadingElement')?.remove();
-            }
-            scrollToElement(point.scroll);
-            this.activatePoint(point, i, true);
-            this.activateContexts(true);
-            this.initPoint(point, this.getActiveStep(), i);
-            if (this.active.index === 0 || i !== 0 || isPrev) {
-              this.addCard(point, i);
-            } else {
-              this.updateCard(point, i);
-            }
-            this.addContexts();
-            this.addHelper(point, this.getActiveStep());
-            this.initStep();
-          }
+          this.preparePoint(point, i, isPrev);
         } else {
+          const isDomReady = !!document.querySelector(point.selector);
+          const isRequiredElementsReady = this.isRequiredElementsReady(point);
           if (!(isDomReady && isRequiredElementsReady)) {
             this.active = {
               ...this.active,
@@ -357,48 +372,22 @@ class InterGuide {
             this.initStep();
           }
         }
-        this.getActivePoints().forEach((point, i) => {
-          this.addShadowArea(point, i);
-        });
+        this.addShadowAreaToPoints();
       });
       if (
         !this.active.items.includes(point.selector) &&
         this.items.length !== this.active.index
       ) {
-        const isDomReady = !!document.querySelector(point.selector);
-        const isRequiredElementsReady = this.isRequiredElementsReady(point);
         observer.observe(document.body, {
           childList: true,
           subtree: true,
           attributes: true,
         });
         this.observers = [...this.observers, observer];
-        if (isDomReady && isRequiredElementsReady) {
-          this.active = {
-            ...this.active,
-            items: [...this.active.items, point.selector],
-          };
-          if (this.active.items.length === 1) {
-            document.getElementById('InterGuide-LoadingElement')?.remove();
-          }
-          scrollToElement(point.scroll);
-          this.activatePoint(point, i, true);
-          this.activateContexts(true);
-          this.initPoint(point, this.getActiveStep(), i);
-          if (this.active.index === 0 || i !== 0 || isPrev) {
-            this.addCard(point, i);
-          } else {
-            this.updateCard(point, i);
-          }
-          this.addContexts();
-          this.addHelper(point, this.getActiveStep());
-          this.initStep();
-        }
+        this.preparePoint(point, i, isPrev);
       }
     });
-    this.getActivePoints()?.forEach((point, i) => {
-      this.addShadowArea(point, i);
-    });
+    this.addShadowAreaToPoints()
   }
 
   private addShadowArea(point: GuidePoint, i: number) {
@@ -606,8 +595,12 @@ class InterGuide {
     }
   }
 
-  private addCard(point: GuidePoint, i: number) {
-    let wrapper = document.createElement('div');
+  private prepareWrapperCard(
+    wrapper: HTMLElement,
+    i: number,
+    point: GuidePoint,
+    type: 'add' | 'update'
+  ) {
     if (
       this.getActivePointsCount() - 1 === i &&
       this.items.length - 1 !== this.active.index
@@ -617,10 +610,6 @@ class InterGuide {
         'linear'} ${delay ?? '0s'}, left ${duration ?? '1s'} ${timingFunction ??
         'linear'} ${delay ?? '0s'}`;
     }
-    wrapper.className = 'interguide-js-card';
-    wrapper.id = `InterGuide-Card-${point.selector}`;
-    wrapper.style.zIndex = this.layers.cardsLayer.toString();
-
     const isNextButton = this.getActiveStep()?.nextButton;
     const key = this.getActiveStep()?.key;
     const isPrevButton =
@@ -639,18 +628,26 @@ class InterGuide {
       );
     }
     point.cardRender(wrapper, {
-      pointNumber: this.getPointNumber(i),
+      pointNumber: this.getPointNumber(type === 'add' ? i : 0),
       pointsCount: this.getPointsCount(),
       pointsCountInStep: this.getActivePointsCount(),
-      pointNumberInStep: i + 1,
+      pointNumberInStep: type === 'add' ? i + 1 : 1,
       stepNumber: this.active.index + 1,
       stepsCount: this.items.length,
       prev: isPrevButton ? this.prevStepHandler : undefined,
       next: isNextButton ? this.nextStepHandler : undefined,
       deactivate: this.deactivateGuide,
     });
-    appendItemToContext(wrapper, this.rootContext);
     this.replaceCard(point);
+  }
+
+  private addCard(point: GuidePoint, i: number) {
+    let wrapper = document.createElement('div');
+    wrapper.className = 'interguide-js-card';
+    wrapper.id = `InterGuide-Card-${point.selector}`;
+    wrapper.style.zIndex = this.layers.cardsLayer.toString();
+    this.prepareWrapperCard(wrapper, i, point, 'add');
+    appendItemToContext(wrapper, this.rootContext);
   }
 
   private updateCard(point: GuidePoint, i: number) {
@@ -660,45 +657,8 @@ class InterGuide {
     );
     if (card) {
       card.id = `InterGuide-Card-${point.selector}`;
-      if (
-        this.getActivePointsCount() - 1 === i &&
-        this.items.length - 1 !== this.active.index
-      ) {
-        const { duration, delay, timingFunction } = point.cardAnimation ?? {};
-        card.style.transition = `top ${duration ?? '1s'} ${timingFunction ??
-          'linear'} ${delay ?? '0s'}, left ${duration ??
-          '1s'} ${timingFunction ?? 'linear'} ${delay ?? '0s'}`;
-      }
-      const isNextButton = this.getActiveStep()?.nextButton;
-      const key = this.getActiveStep()?.key;
-      const isPrevButton =
-        this.active.index !== 0
-          ? this.items[this.active.index - 1]?.nextButton
-          : false;
-      if (isNextButton && key) {
-        document.addEventListener(
-          'keydown',
-          event => {
-            if (event.code == key) {
-              this.nextStepHandler();
-            }
-          },
-          { once: true }
-        );
-      }
-      point.cardRender(card, {
-        pointNumber: this.getPointNumber(0),
-        pointsCount: this.getPointsCount(),
-        pointsCountInStep: this.getActivePointsCount(),
-        pointNumberInStep: 1,
-        stepNumber: this.active.index + 1,
-        stepsCount: this.items.length,
-        prev: isPrevButton ? this.prevStepHandler : undefined,
-        next: isNextButton ? this.nextStepHandler : undefined,
-        deactivate: this.deactivateGuide,
-      });
+      this.prepareWrapperCard(card, i, point, 'add');
     }
-    this.replaceCard(point);
   }
 
   private addHelper(point: GuidePoint, step: GuideStep) {
