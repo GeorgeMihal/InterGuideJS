@@ -657,7 +657,7 @@ class InterGuide {
     );
     if (card) {
       card.id = `InterGuide-Card-${point.selector}`;
-      this.prepareWrapperCard(card, i, point, 'add');
+      this.prepareWrapperCard(card, i, point, 'update');
     }
   }
 
