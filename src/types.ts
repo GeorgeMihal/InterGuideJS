@@ -92,6 +92,7 @@ export type Guide = {
   loadingElement?: DecorationControl;
   decorations?: DecorationControl[];
   layers?: LayersSettings;
+  shadowSize?: string;
 };
 
 export type LayersSettings = {

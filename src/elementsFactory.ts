@@ -4,7 +4,7 @@ import { setDecorationPosition, shadowColor, shadowSize } from './utils';
 export const getMainDisplay = (layer: string) => {
   let mainDisplay = document.createElement('div');
   mainDisplay.id = 'InterGuide-MainDisplay';
-  mainDisplay.className = 'interguide-js-main-display';
+  mainDisplay.className = 'interguide-js-context';
   mainDisplay.style.zIndex = layer;
   return mainDisplay;
 };

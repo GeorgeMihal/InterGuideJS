@@ -1,7 +1,7 @@
 import { Position, ScrollSettings } from './types';
 
-export const modifyzIndex = (id: string, index?: number) => {
-  const item: any = document.querySelectorAll(id)?.item(0);
+export const modifyzIndex = (selector: string, index?: number) => {
+  const item: any = document.querySelectorAll(selector)?.item(0);
   if (item) {
     item.style.zIndex = index ?? null;
   }
