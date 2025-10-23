@@ -84,7 +84,7 @@ class InterGuide {
   }
 
   activateGuide(guide: Guide) {
-    this.setRootContext(guide.rootContext ?? 'root');
+    this.setRootContext(guide.rootContext ?? '[id=root]');
     this.layers = {
       ...this.layers,
       ...guide.layers,
