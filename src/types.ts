@@ -1,10 +1,13 @@
-import { VNode } from 'preact';
-
 export type Position = {
   top?: string;
   left?: string;
   right?: string;
   bottom?: string;
+};
+
+export type CardPosition = {
+  top?: number;
+  left?: number;
 };
 
 export type Direction =
@@ -20,23 +23,86 @@ export type Direction =
 export type GuideStep = {
   points: GuidePoint[];
   nextButton?: boolean;
-  contexts?: { selector: string; id?: string; hasShadow?: boolean }[];
+  key?: string;
+  contexts?: Context[];
   nextStepElements?: string[];
+  shadowColor?: string;
 };
 
+export type Context = { selector: string };
+
 export type GuidePoint = {
-  card: (control: {
-    prev?: () => void;
-    next?: () => void;
-    pointNumber: number;
-    poinstCount: number;
-  }) => VNode;
-  id: string;
+  cardRender: (wrapper: HTMLElement, control: CardControl) => void;
+  cardAnimation?: CardAnimationSettings;
+  selector: string;
   disable?: boolean;
-  scrollId?: string;
+  scroll?: ScrollSettings;
+  style?: StyleSettings;
   direction: Direction;
+  position?: CardPosition;
   subPoints?: string[];
   requiredElements?: string[];
-  backgroundColor?: string;
+};
+
+export type ScrollSettings = {
+  selector: string;
+  behavior?: 'auto' | 'smooth';
+  block?: ScrollPosition;
+  inline?: ScrollPosition;
+};
+
+export type ScrollPosition = 'center' | 'end' | 'nearest' | 'start';
+
+export type CardAnimationSettings = {
+  duration?: string;
+  delay?: string;
+  timingFunction?: string;
+};
+
+export type StyleSettings = {
+  border?: string;
+  borderRadius?: string;
   padding?: number | Required<Position>;
+  backgroundColor?: string;
+};
+
+export type CardControl = {
+  prev?: () => void;
+  next?: () => void;
+  deactivate: () => void;
+  pointNumber: number;
+  pointsCount: number;
+  pointsCountInStep: number;
+  pointNumberInStep: number;
+  stepsCount: number;
+  stepNumber: number;
+};
+
+export type DecorationControl = {
+  render?: (wrapper: HTMLElement, cancel?: () => void) => void;
+  position: Position;
+  requiredElements?: string[];
+};
+
+export type Guide = {
+  steps: GuideStep[];
+  rootContext?: string;
+  deactivateElement?: DecorationControl;
+  finalElement?: DecorationControl;
+  loadingElement?: DecorationControl;
+  decorations?: DecorationControl[];
+  layers?: LayersSettings;
+  shadowSize?: string;
+};
+
+export type LayersSettings = {
+  cardsLayer?: number;
+  areaLayer?: number;
+  helpersLayer?: number;
+  disableLayer?: number;
+  contextsLayer?: number;
+  decorationsLayer?: number;
+  mainDisplayLayer?: number;
+  pointsLayer?: number;
+  subPointsLayer?: number;
 };
